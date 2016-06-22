@@ -8,6 +8,9 @@ cache:
 
 script:
   - make
+  - elm-make --output app.js
+  - ls
+  - sed -i '/addPublicModule(Elm\[.Main.\])/a Elm.Main.embed(document.getElementById("app"));' app.js
 
 notifications:
   slack:
