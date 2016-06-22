@@ -129,7 +129,13 @@ subscriptions model =
 getProjects : Cmd Msg
 getProjects =
   let url = apiUrl ++ "projects"
-  in Task.perform FetchFail FetchSucceed (Http.get decodeProject url)
+      request =
+        { verb = "GET"
+        , headers = [("Authorization", "xxx")]
+        , url = url
+        , body = Http.empty
+        }
+  in Task.perform FetchFail FetchSucceed (Http.fromJson decodeProject (Http.send Http.defaultSettings request))
 
 decodeProject : Json.Decoder (List Project)
 decodeProject =
