@@ -7,8 +7,7 @@ cache:
     - elm-stuff/build-artifacts
 
 script:
-  - elm-make --output=app.js
-  - ls
+  - elm make Main.elm --output=app.js
   - sed -i '/addPublicModule(Elm\[.Main.\])/a Elm.Main.embed(document.getElementById("app"));' app.js
 
 notifications:
