@@ -7,8 +7,8 @@ cache:
     - elm-stuff/build-artifacts
 
 script:
-  - elm make Main.elm --output=app.js
-  - sed -i '/addPublicModule(Elm\[.Main.\]/a Elm.Main.embed(document.getElementById("app"), {token: window.token, apiUrl: window.apiUri});' app.js
+  - alias gsed=sed
+  - make
 
 notifications:
   slack:
