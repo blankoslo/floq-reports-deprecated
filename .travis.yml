@@ -17,6 +17,7 @@ deploy:
   provider: gcs
   bucket: floq-test
   local-dir: dist
+  upload-dir: reports
   skip_cleanup: true
   access_key_id: GOOG4TF3YTO6DLTQWEHD
   secret_access_key:
