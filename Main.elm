@@ -138,7 +138,7 @@ getProjects token apiUrl =
   let url = apiUrl ++ "/reporting/projects"
       request =
         { verb = "GET"
-        , headers = [("Authorization", "Bearer: " ++ token)]
+        , headers = [("Authorization", "Bearer " ++ token)]
         , url = url
         , body = Http.empty
         }
