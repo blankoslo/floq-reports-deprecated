@@ -134,7 +134,7 @@ subscriptions model =
 
 -- HTTP
 getProjects : String -> String -> Cmd Msg
-getProjects apiUrl token =
+getProjects token apiUrl =
   let url = apiUrl ++ "projects"
       request =
         { verb = "GET"
