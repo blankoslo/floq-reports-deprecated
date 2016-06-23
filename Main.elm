@@ -105,7 +105,7 @@ update action model =
 -- VIEW
 view : Model -> Html Msg
 view model =
-  let items = (List.map (\p -> li [] [a [href (model.apiUrl ++ "hours/" ++ toString p.id ++ "?year=" ++ toString model.year ++ "&month=" ++ toString model.month)] [text (p.customer ++ ": " ++ p.name)]]) model.projects)
+  let items = (List.map (\p -> li [] [a [href (model.apiUrl ++ "/hours/" ++ toString p.id ++ "?year=" ++ toString model.year ++ "&month=" ++ toString model.month)] [text (p.customer ++ ": " ++ p.name)]]) model.projects)
       monthOptions = List.map
                        (\m -> option
                             [selected (monthToInt m == model.month), value (toString (monthToInt m))]
@@ -135,7 +135,7 @@ subscriptions model =
 -- HTTP
 getProjects : String -> String -> Cmd Msg
 getProjects token apiUrl =
-  let url = apiUrl ++ "projects"
+  let url = apiUrl ++ "/reporting/projects"
       request =
         { verb = "GET"
         , headers = [("Authorization", "Bearer: " ++ token)]
