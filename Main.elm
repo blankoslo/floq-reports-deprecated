@@ -10,9 +10,6 @@ import List
 import Task
 import Date exposing (..)
 
-apiUrl : String
-apiUrl = "https://api.floq.no/reporting/"
-
 months : List Month
 months = [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec]
 
@@ -39,9 +36,11 @@ intDecoder =
       Ok i -> Json.succeed i
       Err err -> Json.fail err
 
-main : Program Never
+type alias Flags = { token : String, apiUrl : String }
+
+main : Program Flags
 main =
-  Html.program
+  Html.programWithFlags
     { init = init
     , view = view
     , update = update
@@ -59,10 +58,15 @@ type alias Model =
   { projects : List Project
   , year : Int
   , month : Int
+  , token : String
+  , apiUrl : String
   }
 
-init : (Model, Cmd Msg)
-init = (Model [] 1970 1, Task.perform Initialize Initialize Date.now)
+init : Flags -> (Model, Cmd Msg)
+init flags =
+    let initialModel =  Model [] 1970 1 flags.token flags.apiUrl
+    in
+        (initialModel, Task.perform Initialize Initialize Date.now)
 
 -- UPDATE
 type Msg
@@ -78,10 +82,13 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Initialize date ->
-        ({ model | year = Date.year date, month = monthToInt (Date.month date) }, getProjects)
+        ({ model |
+               year = Date.year date,
+               month = monthToInt (Date.month date)
+         }, getProjects model.token model.apiUrl)
 
     FetchSucceed projects ->
-      (Model projects model.year model.month, Cmd.none)
+      ({ model | projects = projects }, Cmd.none)
 
     FetchFail _ ->
       (model, Cmd.none)
@@ -98,7 +105,7 @@ update action model =
 -- VIEW
 view : Model -> Html Msg
 view model =
-  let items = (List.map (\p -> li [] [a [href (apiUrl ++ "hours/" ++ toString p.id ++ "?year=" ++ toString model.year ++ "&month=" ++ toString model.month)] [text (p.customer ++ ": " ++ p.name)]]) model.projects)
+  let items = (List.map (\p -> li [] [a [href (model.apiUrl ++ "hours/" ++ toString p.id ++ "?year=" ++ toString model.year ++ "&month=" ++ toString model.month)] [text (p.customer ++ ": " ++ p.name)]]) model.projects)
       monthOptions = List.map
                        (\m -> option
                             [selected (monthToInt m == model.month), value (toString (monthToInt m))]
@@ -126,12 +133,12 @@ subscriptions model =
   Sub.none
 
 -- HTTP
-getProjects : Cmd Msg
-getProjects =
+getProjects : String -> String -> Cmd Msg
+getProjects apiUrl token =
   let url = apiUrl ++ "projects"
       request =
         { verb = "GET"
-        , headers = [("Authorization", "xxx")]
+        , headers = [("Authorization", "Bearer: " ++ token)]
         , url = url
         , body = Http.empty
         }
