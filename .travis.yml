@@ -1,10 +1,10 @@
-language: haskell
-install:
-  - npm install -g elm
-  - elm-package install -y
+language: node_js
 cache:
   directories:
+    - node_modules
     - elm-stuff/build-artifacts
+node_js:
+  - "6"
 
 script:
   - npm run dist
