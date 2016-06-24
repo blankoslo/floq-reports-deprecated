@@ -1,7 +1,6 @@
 var path              = require( 'path' );
 var webpack           = require( 'webpack' );
 var merge             = require( 'webpack-merge' );
-var HtmlWebpackPlugin = require( 'html-webpack-plugin' );
 var autoprefixer      = require( 'autoprefixer' );
 var ExtractTextPlugin = require( 'extract-text-webpack-plugin' );
 var CopyWebpackPlugin = require( 'copy-webpack-plugin' );
@@ -25,20 +24,11 @@ var commonConfig = {
   module: {
     noParse: /\.elm$/,
     loaders: [
-      {
-        test: /\.(eot|ttf|woff|woff2|svg)$/,
-        loader: 'file-loader'
-      }
+      { test: /\.less$/, loader: 'style!css!less' },
     ]
   },
 
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: 'src/index.html',
-      inject:   'body',
-      filename: 'index.html'
-    })
-  ],
+  plugins: [],
 
   postcss: [ autoprefixer( { browsers: ['last 2 versions'] } ) ],
 
@@ -66,15 +56,6 @@ if ( TARGET_ENV === 'development' ) {
           test:    /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
           loader:  'elm-hot!elm-webpack?verbose=true&warn=true'
-        },
-        {
-          test: /\.(css|scss)$/,
-          loaders: [
-            'style-loader',
-            'css-loader',
-            'postcss-loader',
-            'sass-loader'
-          ]
         }
       ]
     }
@@ -96,14 +77,6 @@ if ( TARGET_ENV === 'production' ) {
           test:    /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
           loader:  'elm-webpack'
-        },
-        {
-          test: /\.(css|scss)$/,
-          loader: ExtractTextPlugin.extract( 'style-loader', [
-            'css-loader',
-            'postcss-loader',
-            'sass-loader'
-          ])
         }
       ]
     },
