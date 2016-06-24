@@ -7,7 +7,7 @@ cache:
     - elm-stuff/build-artifacts
 
 script:
-  - make
+  - npm run dist
 
 notifications:
   slack:
