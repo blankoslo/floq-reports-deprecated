@@ -105,17 +105,23 @@ update action model =
 -- VIEW
 view : Model -> Html Msg
 view model =
-  let items = (List.map (\p -> li [] [a [href (model.apiUrl ++ "/hours/" ++ toString p.id ++ "?year=" ++ toString model.year ++ "&month=" ++ toString model.month)] [text (p.customer ++ ": " ++ p.name)]]) model.projects)
-      monthOptions = List.map
-                       (\m -> option
-                            [selected (monthToInt m == model.month), value (toString (monthToInt m))]
-                            [text (toString m)])
-                       months
-      yearOptions = List.map
-                      (\m -> option
-                           [selected (m == model.year), value (toString m)]
-                           [text (toString m)])
-                      [2015..2025]
+  let toListItem p =
+          let url = model.apiUrl
+                    ++ "/reporting/hours/" ++ toString p.id
+                    ++ "?year=" ++ toString model.year
+                    ++ "&month=" ++ toString model.month
+                    ++ "&jwt=" ++ Http.uriDecode model.token
+          in
+          li [] [a [href url] [text (p.customer ++ ": " ++ p.name)]]
+      items = (List.map toListItem model.projects)
+      toMonthOption m = option
+                     [selected (monthToInt m == model.month), value (toString (monthToInt m))]
+                     [text (toString m)]
+      monthOptions = List.map toMonthOption months
+      toYearOption y = option
+                         [selected (y == model.year), value (toString y)]
+                         [text (toString y)]
+      yearOptions = List.map toYearOption [2015..2025]
   in
   div []
     [ h2 [] [text "Projects"]
