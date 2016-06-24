@@ -6,6 +6,7 @@ import Http
 import Json.Decode as Json
 import Json.Decode exposing ((:=))
 import String
+import Char exposing (isLower, isUpper)
 import List
 import Task
 import Date exposing (..)
@@ -111,8 +112,15 @@ view model =
                     ++ "?year=" ++ toString model.year
                     ++ "&month=" ++ toString model.month
                     ++ "&jwt=" ++ Http.uriDecode model.token
+              month = if model.month < 10
+                      then "0" ++ toString model.month
+                      else toString model.month
+              filename = toString model.year ++ "-"
+                         ++ month ++ "-"
+                         ++ String.filter (\c -> isUpper c || isLower c) p.name
+                         ++ ".csv"
           in
-          li [] [a [href url] [text (p.customer ++ ": " ++ p.name)]]
+          li [] [a [href url, downloadAs filename] [text (p.customer ++ ": " ++ p.name)]]
       items = (List.map toListItem model.projects)
       toMonthOption m = option
                      [selected (monthToInt m == model.month), value (toString (monthToInt m))]
