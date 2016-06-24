@@ -14,16 +14,29 @@ notifications:
     secure: 0zH9mGjipdI9it6RZRTJlGuehphO1mmxtRQtu5ahDY86dGG9qaUfktzBsBNDzd9JzwixCplXV8TiZVLjp166sBsKd6iHLaTbiMTdHVWlR4bPHHnvkxX5DaOMylmVU4xNgckdc8EiKEbrP1fUolE5zK083NrPHrE44Ldv1YvebWNE3tDWrYvOTa9CzxwC9BtdNbUhdJSH9o0Eqn25nVjq4uqmIDCsBP7AFIVAMk65GglUPxgIMpX4Ys/rwVyQJOgnmvqLfX7gu32IQgc7zAK9uIqVfZIUjAxc21Fdcm9tLdqtqPLSbfju6MEWLqn8wndTrDGLsin+oGdPyyVx5EoNC6BbN/gzoD2dQ/ra1zaCAUTsIPgopyjjU8oPyqyfemJ1TDkV5bXoQSW3gmeFPzwdYVoT4BaXa95nNn1cpbJyPsNHGvedgssL9KZaHQx3a0YxkwjMZ5+QnbdhAKVDAso1D820sUXxl5MCGuswHaeWOv0kAO7/Etd8S5I4X1JHMIyCc/gAafOS4I4HnGFqPcAgytRpIynKiquTXqVRSoxCiwZmbS584Vf84LhHj0M8ab0OKY5OLbRmaGGwWbmKNJzclGBLqd5NiJdm6MHb/oMTDzRyqKkNPTQ6gHsdnNjNOLwdEaZbo1j6mj2IswjyMvRX8zxGM/dzplOPR9iNzU6Y6hk=
 
 deploy:
-  provider: gcs
-  bucket: floq-test
-  local-dir: dist
-  upload-dir: reports
-  cache_control: "max-age=0"
-  acl: public-read
-  skip_cleanup: true
-  access_key_id: GOOG4TF3YTO6DLTQWEHD
-  secret_access_key:
-    secure: aX+nPCIFZ4oebgQw+lzefdyZ532GN+M3HmGqB8bX6Dxsxoe7zTUT8UrF/ZdkOaDA+7t8tRqn+XDB2R3mV2RYN+uyNG1IRKWTmJ9FSDt7WuCdDPGN7Q5r9VZFMkAlLDrSnSXnMET2DPcfLzb6iTUASOSx0TQsT417LVQJ6Ht7hHLkGmwObIc/EXtKwPAI1LVpzr6xIR7E5c9EhGIO0lpO0PsxiYkwsP1jDSuZYQWgAUroqw+SBbb0vVxC4H0MqcMVwQfFGJ28Qt1t1W4k1Pz/+s0rtAMqh82nLcLinXJTpX1RtnDXFEKcIITtL0mtp+ay1K/GGJ/hj1TSp6Ca57DPXHavhCjvU7hhKuG0RUIkkwF3paXF+cjGvxkFW8ytY6AL0FVes+sYvBsYKUqNRKsNOn4x3JLRjmoaOFOoBPhGman8SiRetdPmatV0MNqeqykm8DsW3BG9p7ioAidOaZsHX8h5bNE45KtZq4Sxeo8xDvwRycfIOo/sykCkJB+3YNbFCO6CSP2VWu7IJrQ5EGGWdvQSBk3ZIyBnw3tWKtS7iasBkcbqmUmAV9U8SAbkgTTtPoXnrkdpmmdj3FkrcupMHHZytHbW9Py+2vJ7WXye5fRflm5Fq7fV5LlA1J7LnlL0vq0f5+EZeW/z4K0jZmYHe4z7dUpc0SutnhKKeVyX1h4=
-  on:
-    repo: blankoslo/floq-reports
-    branch: develop
+  - provider: gcs
+    bucket: floq-test
+    local-dir: dist
+    upload-dir: reports
+    cache_control: "max-age=0"
+    acl: public-read
+    skip_cleanup: true
+    access_key_id: GOOG4TF3YTO6DLTQWEHD
+    secret_access_key:
+      secure: aX+nPCIFZ4oebgQw+lzefdyZ532GN+M3HmGqB8bX6Dxsxoe7zTUT8UrF/ZdkOaDA+7t8tRqn+XDB2R3mV2RYN+uyNG1IRKWTmJ9FSDt7WuCdDPGN7Q5r9VZFMkAlLDrSnSXnMET2DPcfLzb6iTUASOSx0TQsT417LVQJ6Ht7hHLkGmwObIc/EXtKwPAI1LVpzr6xIR7E5c9EhGIO0lpO0PsxiYkwsP1jDSuZYQWgAUroqw+SBbb0vVxC4H0MqcMVwQfFGJ28Qt1t1W4k1Pz/+s0rtAMqh82nLcLinXJTpX1RtnDXFEKcIITtL0mtp+ay1K/GGJ/hj1TSp6Ca57DPXHavhCjvU7hhKuG0RUIkkwF3paXF+cjGvxkFW8ytY6AL0FVes+sYvBsYKUqNRKsNOn4x3JLRjmoaOFOoBPhGman8SiRetdPmatV0MNqeqykm8DsW3BG9p7ioAidOaZsHX8h5bNE45KtZq4Sxeo8xDvwRycfIOo/sykCkJB+3YNbFCO6CSP2VWu7IJrQ5EGGWdvQSBk3ZIyBnw3tWKtS7iasBkcbqmUmAV9U8SAbkgTTtPoXnrkdpmmdj3FkrcupMHHZytHbW9Py+2vJ7WXye5fRflm5Fq7fV5LlA1J7LnlL0vq0f5+EZeW/z4K0jZmYHe4z7dUpc0SutnhKKeVyX1h4=
+    on:
+      repo: blankoslo/floq-reports
+      branch: develop
+  - provider: gcs
+    bucket: floq
+    local-dir: dist
+    upload-dir: reports
+    cache_control: "max-age=0"
+    acl: public-read
+    skip_cleanup: true
+    access_key_id: GOOG4TF3YTO6DLTQWEHD
+    secret_access_key:
+      secure: aX+nPCIFZ4oebgQw+lzefdyZ532GN+M3HmGqB8bX6Dxsxoe7zTUT8UrF/ZdkOaDA+7t8tRqn+XDB2R3mV2RYN+uyNG1IRKWTmJ9FSDt7WuCdDPGN7Q5r9VZFMkAlLDrSnSXnMET2DPcfLzb6iTUASOSx0TQsT417LVQJ6Ht7hHLkGmwObIc/EXtKwPAI1LVpzr6xIR7E5c9EhGIO0lpO0PsxiYkwsP1jDSuZYQWgAUroqw+SBbb0vVxC4H0MqcMVwQfFGJ28Qt1t1W4k1Pz/+s0rtAMqh82nLcLinXJTpX1RtnDXFEKcIITtL0mtp+ay1K/GGJ/hj1TSp6Ca57DPXHavhCjvU7hhKuG0RUIkkwF3paXF+cjGvxkFW8ytY6AL0FVes+sYvBsYKUqNRKsNOn4x3JLRjmoaOFOoBPhGman8SiRetdPmatV0MNqeqykm8DsW3BG9p7ioAidOaZsHX8h5bNE45KtZq4Sxeo8xDvwRycfIOo/sykCkJB+3YNbFCO6CSP2VWu7IJrQ5EGGWdvQSBk3ZIyBnw3tWKtS7iasBkcbqmUmAV9U8SAbkgTTtPoXnrkdpmmdj3FkrcupMHHZytHbW9Py+2vJ7WXye5fRflm5Fq7fV5LlA1J7LnlL0vq0f5+EZeW/z4K0jZmYHe4z7dUpc0SutnhKKeVyX1h4=
+    on:
+      repo: blankoslo/floq-reports
+      branch: master
