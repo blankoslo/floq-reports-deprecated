@@ -50,7 +50,7 @@ main =
 
 -- MODEL
 type alias Project =
-  { id : Int
+  { id : String
   , name : String
   , customer: String
   }
@@ -108,7 +108,7 @@ view : Model -> Html Msg
 view model =
   let toListItem p =
           let url = model.apiUrl
-                    ++ "/reporting/hours/" ++ toString p.id
+                    ++ "/reporting/hours/" ++ p.id
                     ++ "?year=" ++ toString model.year
                     ++ "&month=" ++ toString model.month
                     ++ "&jwt=" ++ Http.uriDecode model.token
@@ -160,4 +160,4 @@ getProjects token apiUrl =
 
 decodeProject : Json.Decoder (List Project)
 decodeProject =
-  Json.list (Json.object3 Project ("projectId" := Json.int) ("projectName" := Json.string) ("customerName" := Json.string))
+  Json.list (Json.object3 Project ("projectId" := Json.string) ("projectName" := Json.string) ("customerName" := Json.string))
