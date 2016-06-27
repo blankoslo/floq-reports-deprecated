@@ -120,7 +120,11 @@ view model =
                          ++ String.filter (\c -> isUpper c || isLower c) p.name
                          ++ ".csv"
           in
-          li [] [a [href url] [text (p.customer ++ ": " ++ p.name)]]
+          li
+            [class "mdl-list__item"]
+            [a
+              [href url]
+              [span [class "code"] [text p.id], text (": " ++ p.customer ++ " – " ++ p.name)]]
       items = (List.map toListItem model.projects)
       toMonthOption m = option
                      [selected (monthToInt m == model.month), value (toString (monthToInt m))]
@@ -132,11 +136,17 @@ view model =
       yearOptions = List.map toYearOption [2015..2025]
   in
   div []
-    [ h2 [] [text "Projects"]
-    , select [on "change" (Json.map MonthChanged intDecoder)] monthOptions
-    , select [on "change" (Json.map YearChanged intDecoder)] yearOptions
-    , br [] []
-    , ul [] items
+    [ h3 [] [text "Prosjekter"]
+    , div [class "mdl-grid"]
+      [ div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
+        [ select [on "change" (Json.map MonthChanged intDecoder)] monthOptions
+        ]
+      , div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
+        [ select [on "change" (Json.map YearChanged intDecoder)] yearOptions
+        ]
+      ]
+    , div []
+      [ ul [class "mdl-list"] items]
     ]
 
 
