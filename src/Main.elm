@@ -120,7 +120,7 @@ view model =
                          ++ String.filter (\c -> isUpper c || isLower c) p.name
                          ++ ".csv"
           in
-          li [] [a [href url, downloadAs filename] [text (p.customer ++ ": " ++ p.name)]]
+          li [] [a [href url] [text (p.customer ++ ": " ++ p.name)]]
       items = (List.map toListItem model.projects)
       toMonthOption m = option
                      [selected (monthToInt m == model.month), value (toString (monthToInt m))]
