@@ -30,6 +30,22 @@ monthToInt month =
         Nov -> 11
         Dec -> 12
 
+monthToString : Month -> String
+monthToString month =
+    case month of
+        Jan -> "Januar"
+        Feb -> "Februar"
+        Mar -> "Mars"
+        Apr -> "April"
+        May -> "Mai"
+        Jun -> "Juni"
+        Jul -> "Juli"
+        Aug -> "August"
+        Sep -> "September"
+        Oct -> "Okober"
+        Nov -> "November"
+        Dec -> "Desember"
+
 intDecoder : Json.Decoder Int
 intDecoder =
   targetValue `Json.andThen` \val ->
@@ -128,7 +144,7 @@ view model =
       items = (List.map toListItem model.projects)
       toMonthOption m = option
                      [selected (monthToInt m == model.month), value (toString (monthToInt m))]
-                     [text (toString m)]
+                     [text (monthToString m)]
       monthOptions = List.map toMonthOption months
       toYearOption y = option
                          [selected (y == model.year), value (toString y)]
