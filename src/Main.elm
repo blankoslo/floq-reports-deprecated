@@ -30,6 +30,22 @@ monthToInt month =
         Nov -> 11
         Dec -> 12
 
+monthToString : Month -> String
+monthToString month =
+    case month of
+        Jan -> "Januar"
+        Feb -> "Februar"
+        Mar -> "Mars"
+        Apr -> "April"
+        May -> "Mai"
+        Jun -> "Juni"
+        Jul -> "Juli"
+        Aug -> "August"
+        Sep -> "September"
+        Oct -> "Okober"
+        Nov -> "November"
+        Dec -> "Desember"
+
 intDecoder : Json.Decoder Int
 intDecoder =
   targetValue `Json.andThen` \val ->
@@ -83,10 +99,15 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Initialize date ->
-        ({ model |
-               year = Date.year date,
-               month = monthToInt (Date.month date)
-         }, getProjects model.token model.apiUrl)
+        let month = (monthToInt (Date.month date) - 1) % 12
+            year = if month == 1
+                   then Date.year date - 1
+                   else Date.year date
+        in
+          ({ model |
+                 year = year,
+                 month = month
+           }, getProjects model.token model.apiUrl)
 
     FetchSucceed projects ->
       ({ model | projects = projects }, Cmd.none)
@@ -128,7 +149,7 @@ view model =
       items = (List.map toListItem model.projects)
       toMonthOption m = option
                      [selected (monthToInt m == model.month), value (toString (monthToInt m))]
-                     [text (toString m)]
+                     [text (monthToString m)]
       monthOptions = List.map toMonthOption months
       toYearOption y = option
                          [selected (y == model.year), value (toString y)]
