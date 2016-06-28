@@ -99,10 +99,15 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Initialize date ->
-        ({ model |
-               year = Date.year date,
-               month = monthToInt (Date.month date)
-         }, getProjects model.token model.apiUrl)
+        let month = (monthToInt (Date.month date) - 1) % 12
+            year = if month == 1
+                   then Date.year date - 1
+                   else Date.year date
+        in
+          ({ model |
+                 year = year,
+                 month = month
+           }, getProjects model.token model.apiUrl)
 
     FetchSucceed projects ->
       ({ model | projects = projects }, Cmd.none)
