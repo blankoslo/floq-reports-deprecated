@@ -1,7 +1,7 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.App as Html
-import Html.Events exposing (onClick, on, targetValue)
+import Html.Events exposing (onClick, on, targetValue, onInput)
 import Http
 import Json.Decode as Json
 import Json.Decode exposing ((:=))
@@ -10,6 +10,7 @@ import Char exposing (isLower, isUpper)
 import List
 import Task
 import Date exposing (..)
+import Date.Extra.Format exposing (isoDateString)
 
 months : List Month
 months = [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec]
@@ -64,6 +65,8 @@ main =
     , subscriptions = subscriptions
     }
 
+type alias DateString = String
+
 -- MODEL
 type alias Project =
   { id : String
@@ -71,8 +74,14 @@ type alias Project =
   , customer: String
   }
 
+type alias StatusRange =
+  { start : DateString
+  , end : DateString
+  }
+
 type alias Model =
   { projects : List Project
+  , statusRange : StatusRange
   , year : Int
   , month : Int
   , token : String
@@ -81,7 +90,8 @@ type alias Model =
 
 init : Flags -> (Model, Cmd Msg)
 init flags =
-    let initialModel =  Model [] 1970 1 flags.token flags.apiUrl
+    let initialRange = StatusRange "1970-01-01" "1970-01-01"
+        initialModel =  Model [] initialRange 1970 1 flags.token flags.apiUrl
     in
         (initialModel, Task.perform Initialize Initialize Date.now)
 
@@ -92,6 +102,8 @@ type Msg
   | Initialize Date.Date
   | YearChanged Int
   | MonthChanged Int
+  | RangeStartDate String
+  | RangeEndDate String
   | DateMissing
 
 
@@ -105,6 +117,7 @@ update action model =
                    else Date.year date
         in
           ({ model |
+                 statusRange = StatusRange (isoDateString date) (isoDateString date),
                  year = year,
                  month = month
            }, getProjects model.token model.apiUrl)
@@ -121,12 +134,53 @@ update action model =
     MonthChanged month ->
         ({ model | month = month }, Cmd.none)
 
+    RangeStartDate start ->
+        let oldRange = model.statusRange
+            newRange = { oldRange | start = start }
+        in
+            ({ model | statusRange = newRange }, Cmd.none)
+    RangeEndDate end ->
+        let oldRange = model.statusRange
+            newRange = { oldRange | end = end }
+        in
+            ({ model | statusRange = newRange }, Cmd.none)
     DateMissing ->
         (model, Cmd.none)
 
 -- VIEW
 view : Model -> Html Msg
 view model =
+  div [] [status model, projects model]
+
+status : Model -> Html Msg
+status model =
+    let url = model.apiUrl
+              ++ "/reporting/time_tracking_status"
+              ++ "?start_date=" ++ model.statusRange.start
+              ++ "&end_date=" ++ model.statusRange.end
+              ++ "&jwt=" ++ Http.uriDecode model.token
+    in
+      div []
+          [ h3 [] [text "Timeføringstatus"]
+          , div [class "mdl-grid"]
+            [ div [class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone"]
+                [label [for "start"] [ text "Startdato" ]
+                , input [id "start", type' "date" , class "form-control", onInput RangeStartDate, value model.statusRange.start] []
+                ]
+            , div [class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone"]
+                [label [for "end"] [ text "Sluttdato (inklusiv)" ]
+                , input [id "end", type' "date" , class "form-control", onInput RangeEndDate, value model.statusRange.end] []
+                ]
+            ]
+          , div [class "mdl-grid"]
+              [div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
+                 [a [href url] [text "Hent rapport"]]
+
+              ]
+          ]
+
+projects : Model -> Html Msg
+projects model =
   let toListItem p =
           let url = model.apiUrl
                     ++ "/reporting/hours/" ++ p.id
@@ -169,7 +223,6 @@ view model =
     , div []
       [ ul [class "mdl-list"] items]
     ]
-
 
 
 -- SUBSCRIPTIONS
