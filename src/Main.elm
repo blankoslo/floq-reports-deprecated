@@ -1,3 +1,5 @@
+port module Main exposing (..)
+
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.App as Html
@@ -11,6 +13,8 @@ import List
 import Task
 import Date exposing (..)
 import Date.Extra.Format exposing (isoDateString)
+
+port fetchFile : (String, String, String) -> Cmd msg
 
 months : List Month
 months = [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec]
@@ -105,6 +109,7 @@ type Msg
   | RangeStartDate String
   | RangeEndDate String
   | DateMissing
+  | DownloadFile String String String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -147,6 +152,9 @@ update action model =
     DateMissing ->
         (model, Cmd.none)
 
+    DownloadFile url jwt filename ->
+      (model, fetchFile (url, jwt, filename))
+
 -- VIEW
 view : Model -> Html Msg
 view model =
@@ -158,7 +166,8 @@ status model =
               ++ "/reporting/time_tracking_status"
               ++ "?start_date=" ++ model.statusRange.start
               ++ "&end_date=" ++ model.statusRange.end
-              ++ "&jwt=" ++ Http.uriDecode model.token
+        jwt = Http.uriDecode model.token
+        filename = "status-" ++ model.statusRange.start ++ "–" ++ model.statusRange.end
     in
       div []
           [ h3 [] [text "Timeføringstatus"]
@@ -174,7 +183,7 @@ status model =
             ]
           , div [class "mdl-grid"]
               [div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
-                 [a [href url] [text "Hent rapport"]]
+                 [a [onClick (DownloadFile url jwt filename)] [text "Hent rapport"]]
 
               ]
           ]
@@ -186,7 +195,7 @@ projects model =
                     ++ "/reporting/hours/" ++ p.id
                     ++ "?year=" ++ toString model.year
                     ++ "&month=" ++ toString model.month
-                    ++ "&jwt=" ++ Http.uriDecode model.token
+              jwt = Http.uriDecode model.token
               month = if model.month < 10
                       then "0" ++ toString model.month
                       else toString model.month
@@ -198,7 +207,7 @@ projects model =
           li
             [class "mdl-list__item"]
             [a
-              [href url]
+              [onClick (DownloadFile url jwt filename)]
               [span [class "code"] [text p.id], text (": " ++ p.customer ++ " – " ++ p.name)]]
       items = (List.map toListItem model.projects)
       toMonthOption m = option
