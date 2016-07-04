@@ -12,8 +12,6 @@ app.ports.fetchFile.subscribe(function(args) {
   jwt = args[1];
   filename = args[2];
 
-  console.log('args', arguments);
-
   axios.request({
     url: url,
     method: 'get',
