@@ -167,7 +167,7 @@ status model =
               ++ "?start_date=" ++ model.statusRange.start
               ++ "&end_date=" ++ model.statusRange.end
         jwt = Http.uriDecode model.token
-        filename = "status-" ++ model.statusRange.start ++ "–" ++ model.statusRange.end
+        filename = "status-" ++ model.statusRange.start ++ "–" ++ model.statusRange.end ++ ".csv"
     in
       div []
           [ h3 [] [text "Timeføringstatus"]
