@@ -15,17 +15,15 @@ app.ports.fetchFile.subscribe(function(args) {
   axios.request({
     url: url,
     method: 'get',
+    responseType: 'blob',
     headers: {
       'Accept': 'text/csv',
       'Authorization': 'Bearer ' + jwt
     }
   })
   .then(function(response) {
-    var data = response.data;
-
-    // transform the response into a file
-    var blob = new Blob([data], { type: response.headers['content-type'] });
-    var url = window.URL.createObjectURL(blob);
+    // create a blob url representing the data
+    var url = window.URL.createObjectURL(response.data);
 
     // attach blob url to anchor element with download attribute
     var anchor = document.createElement('a');
