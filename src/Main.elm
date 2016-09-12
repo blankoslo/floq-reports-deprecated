@@ -201,6 +201,7 @@ projects model =
                       else toString model.month
               filename = toString model.year ++ "-"
                          ++ month ++ "-"
+                         ++ p.id ++ "-"
                          ++ String.filter (\c -> isUpper c || isLower c) p.name
                          ++ ".csv"
           in
