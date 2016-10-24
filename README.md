@@ -3,3 +3,7 @@
 [![Build Status](https://travis-ci.org/blankoslo/floq-reports.svg?branch=master)](https://travis-ci.org/blankoslo/floq-reports)
 
 Reports overview for `floq` time tracker.
+
+To run:
+
+    npm install && npm start

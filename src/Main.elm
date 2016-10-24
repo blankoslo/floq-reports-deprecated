@@ -16,41 +16,6 @@ import Date.Extra.Format exposing (isoDateString)
 
 port fetchFile : (String, String, String) -> Cmd msg
 
-months : List Month
-months = [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec]
-
-monthToInt : Month -> Int
-monthToInt month =
-    case month of
-        Jan -> 1
-        Feb -> 2
-        Mar -> 3
-        Apr -> 4
-        May -> 5
-        Jun -> 6
-        Jul -> 7
-        Aug -> 8
-        Sep -> 9
-        Oct -> 10
-        Nov -> 11
-        Dec -> 12
-
-monthToString : Month -> String
-monthToString month =
-    case month of
-        Jan -> "Januar"
-        Feb -> "Februar"
-        Mar -> "Mars"
-        Apr -> "April"
-        May -> "Mai"
-        Jun -> "Juni"
-        Jul -> "Juli"
-        Aug -> "August"
-        Sep -> "September"
-        Oct -> "Okober"
-        Nov -> "November"
-        Dec -> "Desember"
-
 intDecoder : Json.Decoder Int
 intDecoder =
   targetValue `Json.andThen` \val ->
@@ -86,8 +51,7 @@ type alias StatusRange =
 type alias Model =
   { projects : List Project
   , statusRange : StatusRange
-  , year : Int
-  , month : Int
+  , projectStatusRange : StatusRange
   , token : String
   , apiUrl : String
   }
@@ -95,7 +59,7 @@ type alias Model =
 init : Flags -> (Model, Cmd Msg)
 init flags =
     let initialRange = StatusRange "1970-01-01" "1970-01-01"
-        initialModel =  Model [] initialRange 1970 1 flags.token flags.apiUrl
+        initialModel =  Model [] initialRange initialRange flags.token flags.apiUrl
     in
         (initialModel, Task.perform Initialize Initialize Date.now)
 
@@ -104,10 +68,10 @@ type Msg
   = FetchSucceed (List Project)
   | FetchFail Http.Error
   | Initialize Date.Date
-  | YearChanged Int
-  | MonthChanged Int
   | RangeStartDate String
   | RangeEndDate String
+  | ProjectRangeStartDate String
+  | ProjectRangeEndDate String
   | DateMissing
   | DownloadFile String String String
 
@@ -116,15 +80,9 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Initialize date ->
-        let month = (monthToInt (Date.month date) - 1) % 12
-            year = if month == 1
-                   then Date.year date - 1
-                   else Date.year date
-        in
           ({ model |
                  statusRange = StatusRange (isoDateString date) (isoDateString date),
-                 year = year,
-                 month = month
+                 projectStatusRange = StatusRange (isoDateString date) (isoDateString date)
            }, getProjects model.token model.apiUrl)
 
     FetchSucceed projects ->
@@ -133,11 +91,16 @@ update action model =
     FetchFail _ ->
       (model, Cmd.none)
 
-    YearChanged year ->
-        ({ model | year = year }, Cmd.none)
-
-    MonthChanged month ->
-        ({ model | month = month }, Cmd.none)
+    ProjectRangeStartDate start ->
+        let oldRange = model.projectStatusRange
+            newRange = { oldRange | start = start }
+        in
+            ({ model | projectStatusRange = newRange }, Cmd.none)
+    ProjectRangeEndDate end ->
+        let oldRange = model.projectStatusRange
+            newRange = { oldRange | end = end }
+        in
+            ({ model | projectStatusRange = newRange }, Cmd.none)
 
     RangeStartDate start ->
         let oldRange = model.statusRange
@@ -193,17 +156,14 @@ projects model =
   let toListItem p =
           let url = model.apiUrl
                     ++ "/reporting/hours/" ++ p.id
-                    ++ "?year=" ++ toString model.year
-                    ++ "&month=" ++ toString model.month
+                    ++ "?start_date=" ++ model.projectStatusRange.start
+                    ++ "&end_date=" ++ model.projectStatusRange.end
               jwt = Http.uriDecode model.token
-              month = if model.month < 10
-                      then "0" ++ toString model.month
-                      else toString model.month
-              filename = toString model.year ++ "-"
-                         ++ month ++ "-"
-                         ++ p.id ++ "-"
-                         ++ String.filter (\c -> isUpper c || isLower c) p.name
-                         ++ ".csv"
+              filename = model.projectStatusRange.start ++ "–"
+                    ++ model.projectStatusRange.end ++ "–"
+                    ++ p.id ++ "-"
+                    ++ String.filter (\c -> isUpper c || isLower c) p.name
+                    ++ ".csv"
           in
           li
             [class "mdl-list__item"]
@@ -211,25 +171,19 @@ projects model =
               [onClick (DownloadFile url jwt filename)]
               [span [class "code"] [text p.id], text (": " ++ p.customer ++ " – " ++ p.name)]]
       items = (List.map toListItem model.projects)
-      toMonthOption m = option
-                     [selected (monthToInt m == model.month), value (toString (monthToInt m))]
-                     [text (monthToString m)]
-      monthOptions = List.map toMonthOption months
-      toYearOption y = option
-                         [selected (y == model.year), value (toString y)]
-                         [text (toString y)]
-      yearOptions = List.map toYearOption [2015..2025]
   in
   div []
     [ h3 [] [text "Prosjekter"]
     , div [class "mdl-grid"]
-      [ div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
-        [ select [on "change" (Json.map MonthChanged intDecoder)] monthOptions
+    [ div [class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone"]
+        [label [for "start"] [ text "Startdato" ]
+        , input [id "start", type' "date" , class "form-control", onInput ProjectRangeStartDate, value model.projectStatusRange.start] []
         ]
-      , div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
-        [ select [on "change" (Json.map YearChanged intDecoder)] yearOptions
+    , div [class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone"]
+        [label [for "end"] [ text "Sluttdato (inklusiv)" ]
+        , input [id "end", type' "date" , class "form-control", onInput ProjectRangeEndDate, value model.projectStatusRange.end] []
         ]
-      ]
+    ]
     , div []
       [ ul [class "mdl-list"] items]
     ]
