@@ -13,6 +13,8 @@ import List
 import Task
 import Date exposing (..)
 import Date.Extra.Format exposing (isoDateString)
+import Date.Extra.Core exposing (toFirstOfMonth, lastOfPrevMonthDate,isoDayOfWeek)
+import Date.Extra.Duration exposing (add, Duration (Week, Day))
 
 port fetchFile : (String, String, String) -> Cmd msg
 
@@ -80,10 +82,26 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
     Initialize date ->
-          ({ model |
-                 statusRange = StatusRange (isoDateString date) (isoDateString date),
-                 projectStatusRange = StatusRange (isoDateString date) (isoDateString date)
-           }, getProjects model.token model.apiUrl)
+      let currentWeekDay = date |> Date.dayOfWeek |> isoDayOfWeek
+          mondayOfPrevWeek = date
+                               |> add Day (1 - currentWeekDay) -- find Monday of this week …
+                               |> add Week -1                  -- … then subtract a week
+                               |> isoDateString
+          sundayOfPrevWeek = date
+                               |> add Day (-currentWeekDay)     -- find Sunday of previous week
+                               |> isoDateString
+          firstDayOfPrevMonth = date
+                                  |> lastOfPrevMonthDate
+                                  |> toFirstOfMonth
+                                  |> isoDateString
+          lastDayOfPrevMonth = date
+                                 |> lastOfPrevMonthDate
+                                 |> isoDateString
+      in
+        ({ model |
+               statusRange = StatusRange mondayOfPrevWeek sundayOfPrevWeek,
+               projectStatusRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
+         }, getProjects model.token model.apiUrl)
 
     FetchSucceed projects ->
       ({ model | projects = projects }, Cmd.none)
