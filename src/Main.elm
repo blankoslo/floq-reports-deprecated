@@ -54,6 +54,7 @@ type alias Model =
   { projects : List Project
   , statusRange : StatusRange
   , projectStatusRange : StatusRange
+  , selectedProject : Maybe Project
   , token : String
   , apiUrl : String
   }
@@ -61,7 +62,7 @@ type alias Model =
 init : Flags -> (Model, Cmd Msg)
 init flags =
     let initialRange = StatusRange "1970-01-01" "1970-01-01"
-        initialModel =  Model [] initialRange initialRange flags.token flags.apiUrl
+        initialModel =  Model [] initialRange initialRange Nothing flags.token flags.apiUrl
     in
         (initialModel, Task.perform Initialize Initialize Date.now)
 
@@ -74,6 +75,7 @@ type Msg
   | RangeEndDate String
   | ProjectRangeStartDate String
   | ProjectRangeEndDate String
+  | SelectProject String
   | DateMissing
   | DownloadFile String String String
 
@@ -104,7 +106,7 @@ update action model =
          }, getProjects model.token model.apiUrl)
 
     FetchSucceed projects ->
-      ({ model | projects = projects }, Cmd.none)
+      ({ model | projects = projects, selectedProject = List.head projects }, Cmd.none)
 
     FetchFail _ ->
       (model, Cmd.none)
@@ -130,6 +132,10 @@ update action model =
             newRange = { oldRange | end = end }
         in
             ({ model | statusRange = newRange }, Cmd.none)
+
+    SelectProject projectId ->
+      ({ model | selectedProject = List.filter (\x -> x.id == projectId) model.projects |> List.head  }, Cmd.none)
+
     DateMissing ->
         (model, Cmd.none)
 
@@ -164,31 +170,31 @@ status model =
             ]
           , div [class "mdl-grid"]
               [div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
-                 [a [onClick (DownloadFile url jwt filename)] [text "Hent rapport"]]
+                 [button [onClick (DownloadFile url jwt filename)] [text "Hent rapport"]]
 
               ]
           ]
 
 projects : Model -> Html Msg
 projects model =
-  let toListItem p =
-          let url = model.apiUrl
-                    ++ "/reporting/hours/" ++ p.id
-                    ++ "?start_date=" ++ model.projectStatusRange.start
-                    ++ "&end_date=" ++ model.projectStatusRange.end
-              jwt = Http.uriDecode model.token
-              filename = model.projectStatusRange.start ++ "–"
-                    ++ model.projectStatusRange.end ++ "–"
-                    ++ p.id ++ "-"
-                    ++ String.filter (\c -> isUpper c || isLower c) p.name
-                    ++ ".csv"
-          in
-          li
-            [class "mdl-list__item"]
-            [a
-              [onClick (DownloadFile url jwt filename)]
-              [span [class "code"] [text p.id], text (": " ++ p.customer ++ " – " ++ p.name)]]
+  let toListItem p = option [value p.id] [text (p.customer ++ " – " ++ p.name)]
       items = (List.map toListItem model.projects)
+      url = Maybe.map (\p ->
+                model.apiUrl
+                  ++ "/reporting/hours/" ++ p.id
+                  ++ "?start_date=" ++ model.projectStatusRange.start
+                  ++ "&end_date=" ++ model.projectStatusRange.end
+            ) model.selectedProject
+      jwt = Http.uriDecode model.token
+      filename = Maybe.map (\p ->
+                    model.projectStatusRange.start ++ "–"
+                      ++ model.projectStatusRange.end ++ "–"
+                      ++ p.id ++ "–"
+                      ++ String.filter (\c -> isUpper c || isLower c) p.customer ++ "–"
+                      ++ String.filter (\c -> isUpper c || isLower c) p.name
+                      ++ ".csv"
+                ) model.selectedProject
+
   in
   div []
     [ h3 [] [text "Prosjekter"]
@@ -202,10 +208,17 @@ projects model =
         , input [id "end", type' "date" , class "form-control", onInput ProjectRangeEndDate, value model.projectStatusRange.end] []
         ]
     ]
-    , div []
-      [ ul [class "mdl-list"] items]
+    , div [class "mdl-grid"]
+        [ div [class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone"]
+          [ select [onInput SelectProject] items ]
+        ]
+    , div [class "mdl-grid"]
+        [ div [class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone"]
+           (case (url,filename) of
+           (Just url, Just filename) -> [button [onClick (DownloadFile url jwt filename)] [text "Hent rapport"]]
+           (_,_) -> [button [disabled True] [text "Hent rapport"]])
+        ]
     ]
-
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
