@@ -71,7 +71,7 @@ init flags =
         initialModel =
             Model [] initialRange initialRange Nothing flags.token flags.apiUrl
     in
-        ( initialModel, Task.perform Initialize Date.now )
+        initialModel ! [ Task.perform SetDate Date.now, getProjects flags.token flags.apiUrl ]
 
 
 
@@ -80,7 +80,7 @@ init flags =
 
 type Msg
     = LoadedProjects (Result Http.Error (List Project))
-    | Initialize Date
+    | SetDate Date
     | RangeStartDate String
     | RangeEndDate String
     | ProjectRangeStartDate String
@@ -93,7 +93,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
-        Initialize date ->
+        SetDate date ->
             let
                 currentWeekDay =
                     date |> Date.dayOfWeek |> isoDayOfWeek
@@ -127,7 +127,7 @@ update action model =
                     | statusRange = StatusRange mondayOfPrevWeek sundayOfPrevWeek
                     , projectStatusRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
                   }
-                , getProjects model.token model.apiUrl
+                , Cmd.none
                 )
 
         LoadedProjects (Ok projects) ->
