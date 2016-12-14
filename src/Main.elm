@@ -17,7 +17,6 @@ import Date.Extra.Duration exposing (add, Duration(Week, Day))
 port fetchFile : ( String, String, String ) -> Cmd msg
 
 
-
 type alias Flags =
     { token : String, apiUrl : String }
 
@@ -101,16 +100,16 @@ update action model =
 
                 mondayOfPrevWeek =
                     date
-                        |> add Day (1 - currentWeekDay)
                         -- find Monday of this week …
-                        |> add Week -1
+                        |> add Day (1 - currentWeekDay)
                         -- … then subtract a week
+                        |> add Week -1
                         |> isoDateString
 
                 sundayOfPrevWeek =
                     date
-                        |> add Day (-currentWeekDay)
                         -- find Sunday of previous week
+                        |> add Day (-currentWeekDay)
                         |> isoDateString
 
                 firstDayOfPrevMonth =
@@ -329,7 +328,7 @@ getProjects token apiUrl =
             , expect = Http.expectJson decodeProject
             , timeout = Nothing
             , withCredentials = False
-        }
+            }
     in
         Http.send LoadedProjects <| Http.request request
 
@@ -337,7 +336,7 @@ getProjects token apiUrl =
 decodeProject : Decoder (List Project)
 decodeProject =
     decode Project
-    |> required "projectId" string
-    |> required "projectName" string
-    |> required "customerName" string
-    |> list
+        |> required "projectId" string
+        |> required "projectName" string
+        |> required "customerName" string
+        |> list
