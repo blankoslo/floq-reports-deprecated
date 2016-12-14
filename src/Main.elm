@@ -1,17 +1,14 @@
 port module Main exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.App as Html
+import Html.Attributes exposing (class, disabled, for, id, type_, value)
 import Html.Events exposing (onClick, on, targetValue, onInput)
 import Http
-import Json.Decode as Json
-import Json.Decode exposing ((:=))
-import String
+import Json.Decode exposing (Decoder, list, string)
+import Json.Decode.Pipeline exposing (decode, required)
 import Char exposing (isLower, isUpper)
-import List
 import Task
-import Date exposing (..)
+import Date exposing (Date)
 import Date.Extra.Format exposing (isoDateString)
 import Date.Extra.Core exposing (toFirstOfMonth, lastOfPrevMonthDate, isoDayOfWeek)
 import Date.Extra.Duration exposing (add, Duration(Week, Day))
@@ -20,24 +17,12 @@ import Date.Extra.Duration exposing (add, Duration(Week, Day))
 port fetchFile : ( String, String, String ) -> Cmd msg
 
 
-intDecoder : Json.Decoder Int
-intDecoder =
-    targetValue
-        `Json.andThen`
-            \val ->
-                case String.toInt val of
-                    Ok i ->
-                        Json.succeed i
-
-                    Err err ->
-                        Json.fail err
-
 
 type alias Flags =
     { token : String, apiUrl : String }
 
 
-main : Program Flags
+main : Program Flags Model Msg
 main =
     Html.programWithFlags
         { init = init
@@ -87,7 +72,7 @@ init flags =
         initialModel =
             Model [] initialRange initialRange Nothing flags.token flags.apiUrl
     in
-        ( initialModel, Task.perform Initialize Initialize Date.now )
+        ( initialModel, Task.perform Initialize Date.now )
 
 
 
@@ -95,9 +80,8 @@ init flags =
 
 
 type Msg
-    = FetchSucceed (List Project)
-    | FetchFail Http.Error
-    | Initialize Date.Date
+    = LoadedProjects (Result Http.Error (List Project))
+    | Initialize Date
     | RangeStartDate String
     | RangeEndDate String
     | ProjectRangeStartDate String
@@ -119,18 +103,15 @@ update action model =
                     date
                         |> add Day (1 - currentWeekDay)
                         -- find Monday of this week …
-                        |>
-                            add Week -1
+                        |> add Week -1
                         -- … then subtract a week
-                        |>
-                            isoDateString
+                        |> isoDateString
 
                 sundayOfPrevWeek =
                     date
                         |> add Day (-currentWeekDay)
                         -- find Sunday of previous week
-                        |>
-                            isoDateString
+                        |> isoDateString
 
                 firstDayOfPrevMonth =
                     date
@@ -150,10 +131,10 @@ update action model =
                 , getProjects model.token model.apiUrl
                 )
 
-        FetchSucceed projects ->
+        LoadedProjects (Ok projects) ->
             ( { model | projects = projects, selectedProject = List.head projects }, Cmd.none )
 
-        FetchFail _ ->
+        LoadedProjects (Err _) ->
             ( model, Cmd.none )
 
         ProjectRangeStartDate start ->
@@ -227,7 +208,7 @@ status model =
                 ++ model.statusRange.end
 
         jwt =
-            Http.uriDecode model.token
+            Http.encodeUri model.token
 
         filename =
             "status-" ++ model.statusRange.start ++ "–" ++ model.statusRange.end ++ ".csv"
@@ -237,11 +218,11 @@ status model =
             , div [ class "mdl-grid" ]
                 [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "start" ] [ text "Startdato" ]
-                    , input [ id "start", type' "date", class "form-control", onInput RangeStartDate, value model.statusRange.start ] []
+                    , input [ id "start", type_ "date", class "form-control", onInput RangeStartDate, value model.statusRange.start ] []
                     ]
                 , div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "end" ] [ text "Sluttdato (inklusiv)" ]
-                    , input [ id "end", type' "date", class "form-control", onInput RangeEndDate, value model.statusRange.end ] []
+                    , input [ id "end", type_ "date", class "form-control", onInput RangeEndDate, value model.statusRange.end ] []
                     ]
                 ]
             , div [ class "mdl-grid" ]
@@ -274,7 +255,7 @@ projects model =
                 model.selectedProject
 
         jwt =
-            Http.uriDecode model.token
+            Http.encodeUri model.token
 
         filename =
             Maybe.map
@@ -297,11 +278,11 @@ projects model =
             , div [ class "mdl-grid" ]
                 [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "start" ] [ text "Startdato" ]
-                    , input [ id "start", type' "date", class "form-control", onInput ProjectRangeStartDate, value model.projectStatusRange.start ] []
+                    , input [ id "start", type_ "date", class "form-control", onInput ProjectRangeStartDate, value model.projectStatusRange.start ] []
                     ]
                 , div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "end" ] [ text "Sluttdato (inklusiv)" ]
-                    , input [ id "end", type' "date", class "form-control", onInput ProjectRangeEndDate, value model.projectStatusRange.end ] []
+                    , input [ id "end", type_ "date", class "form-control", onInput ProjectRangeEndDate, value model.projectStatusRange.end ] []
                     ]
                 ]
             , div [ class "mdl-grid" ]
@@ -341,15 +322,22 @@ getProjects token apiUrl =
             apiUrl ++ "/reporting/projects"
 
         request =
-            { verb = "GET"
-            , headers = [ ( "Authorization", "Bearer " ++ token ) ]
+            { method = "GET"
+            , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
             , url = url
-            , body = Http.empty
-            }
+            , body = Http.emptyBody
+            , expect = Http.expectJson decodeProject
+            , timeout = Nothing
+            , withCredentials = False
+        }
     in
-        Task.perform FetchFail FetchSucceed (Http.fromJson decodeProject (Http.send Http.defaultSettings request))
+        Http.send LoadedProjects <| Http.request request
 
 
-decodeProject : Json.Decoder (List Project)
+decodeProject : Decoder (List Project)
 decodeProject =
-    Json.list (Json.object3 Project ("projectId" := Json.string) ("projectName" := Json.string) ("customerName" := Json.string))
+    decode Project
+    |> required "projectId" string
+    |> required "projectName" string
+    |> required "customerName" string
+    |> list
