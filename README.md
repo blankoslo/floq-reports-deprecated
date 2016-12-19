@@ -6,4 +6,4 @@ Reports overview for `floq` time tracker.
 
 To run:
 
-    npm install && npm start
+    yarn && yarn start
