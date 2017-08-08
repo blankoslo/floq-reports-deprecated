@@ -1,5 +1,6 @@
 language: node_js
 cache:
+  yarn: true
   directories:
     - node_modules
     - elm-stuff/build-artifacts
@@ -7,7 +8,7 @@ node_js:
   - "6"
 
 script:
-  - npm run dist
+  - yarn run dist
 
 notifications:
   slack:

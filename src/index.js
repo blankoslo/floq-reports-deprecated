@@ -30,7 +30,9 @@ fetch(url, {
   var anchor = document.createElement('a');
   anchor.setAttribute('href', url);
   anchor.setAttribute('download', filename);
+  document.body.appendChild(anchor);
   anchor.click();
+  document.body.removeChild(anchor);
   window.URL.revokeObjectURL(url);
 });
 });
