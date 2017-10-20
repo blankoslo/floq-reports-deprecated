@@ -56,6 +56,7 @@ type alias Model =
     { projects : List Project
     , statusRange : StatusRange
     , projectStatusRange : StatusRange
+    , visibilityStatusRange : StatusRange
     , selectedProject : Maybe Project
     , token : String
     , apiUrl : String
@@ -69,7 +70,7 @@ init flags =
             StatusRange "1970-01-01" "1970-01-01"
 
         initialModel =
-            Model [] initialRange initialRange Nothing flags.token flags.apiUrl
+            Model [] initialRange initialRange initialRange Nothing flags.token flags.apiUrl
     in
         initialModel ! [ Task.perform SetDate Date.now, getProjects flags.token flags.apiUrl ]
 
@@ -85,9 +86,12 @@ type Msg
     | RangeEndDate String
     | ProjectRangeStartDate String
     | ProjectRangeEndDate String
+    | VisibilityStartDate String
+    | VisibilityEndDate String
     | SelectProject String
     | DateMissing
     | DownloadFile String String String
+
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -122,10 +126,14 @@ update action model =
                     date
                         |> lastOfPrevMonthDate
                         |> isoDateString
+                today = 
+                    date
+                        |> isoDateString
             in
                 ( { model
                     | statusRange = StatusRange mondayOfPrevWeek sundayOfPrevWeek
                     , projectStatusRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
+                    , visibilityStatusRange = StatusRange mondayOfPrevWeek today
                   }
                 , Cmd.none
                 )
@@ -185,6 +193,25 @@ update action model =
         DownloadFile url jwt filename ->
             ( model, fetchFile ( url, jwt, filename ) )
 
+        VisibilityStartDate start -> 
+            let
+                oldRange =
+                    model.visibilityStatusRange
+
+                newRange =
+                    { oldRange | start = start }
+            in
+                ( { model | visibilityStatusRange = newRange }, Cmd.none )
+
+        VisibilityEndDate end -> 
+            let
+                oldRange =
+                    model.visibilityStatusRange
+
+                newRange =
+                    { oldRange | end = end }
+            in
+                ( { model | visibilityStatusRange = newRange }, Cmd.none )
 
 
 -- VIEW
@@ -192,7 +219,7 @@ update action model =
 
 view : Model -> Html Msg
 view model =
-    div [] [ status model, projects model ]
+    div [] [ status model, projects model, visibility model ]
 
 
 status : Model -> Html Msg
@@ -301,7 +328,45 @@ projects model =
             ]
 
 
+visibility : Model -> Html Msg
+visibility model = 
+    let
+        url =
+            model.apiUrl
+                ++ "/reporting/visibility/"
+                ++ "?start_date="
+                ++ model.visibilityStatusRange.start
+                ++ "&end_date="
+                ++ model.visibilityStatusRange.end
 
+        jwt =
+            Http.encodeUri model.token
+
+        filename =
+            model.projectStatusRange.start
+                ++ "–"
+                ++ model.projectStatusRange.end
+                ++ "–"
+                ++ "visibility"
+                ++ ".csv"
+    in
+        div []
+            [ h3 [] [ text "Visibility" ]
+            , div [ class "mdl-grid" ]
+                [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
+                    [ label [ for "start" ] [ text "Startdato" ]
+                    , input [ id "start", type_ "date", class "form-control", onInput VisibilityStartDate, value model.visibilityStatusRange.start ] []
+                    ]
+                , div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
+                    [ label [ for "end" ] [ text "Sluttdato (inklusiv)" ]
+                    , input [ id "end", type_ "date", class "form-control", onInput VisibilityEndDate, value model.visibilityStatusRange.end ] []
+                    ]
+                ]
+            , div [ class "mdl-grid" ]
+                [ div [ class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone" ]
+                    [ button [ onClick (DownloadFile url jwt filename) ] [ text "Hent rapport" ] ]
+                ]
+            ]
 -- SUBSCRIPTIONS
 
 
