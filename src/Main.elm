@@ -290,12 +290,7 @@ projects model =
                         ++ "–"
                         ++ model.projectStatusRange.end
                         ++ "–"
-                        ++ p.id
-                        ++ "–"
-                        ++ String.filter (\c -> isUpper c || isLower c) p.customer
-                        ++ "–"
-                        ++ String.filter (\c -> isUpper c || isLower c) p.name
-                        ++ ".csv"
+                        ++ "visibility"
                 )
                 model.selectedProject
     in
@@ -337,35 +332,23 @@ visibility model =
             (List.map toListItem model.projects)
 
         url =
-            Maybe.map
-                (\p ->
-                    model.apiUrl
-                        ++ "reporting/visibility/"
-                        ++ "?start_date="
-                        ++ model.visibilityStatusRange.start
-                        ++ "&end_date="
-                        ++ model.visibilityStatusRange.end
-                )
-                model.selectedProject
+            model.apiUrl
+                ++ "/reporting/visibility/"
+                ++ "?start_date="
+                ++ model.visibilityStatusRange.start
+                ++ "&end_date="
+                ++ model.visibilityStatusRange.end
 
         jwt =
             Http.encodeUri model.token
 
         filename =
-            Maybe.map
-                (\p ->
-                    model.projectStatusRange.start
-                        ++ "–"
-                        ++ model.projectStatusRange.end
-                        ++ "–"
-                        ++ p.id
-                        ++ "–"
-                        ++ String.filter (\c -> isUpper c || isLower c) p.customer
-                        ++ "–"
-                        ++ String.filter (\c -> isUpper c || isLower c) p.name
-                        ++ ".csv"
-                )
-                model.selectedProject
+            model.projectStatusRange.start
+                ++ "–"
+                ++ model.projectStatusRange.end
+                ++ "–"
+                ++ "visibility"
+                ++ ".csv"
     in
         div []
             [ h3 [] [ text "Visibility" ]
@@ -381,13 +364,7 @@ visibility model =
                 ]
             , div [ class "mdl-grid" ]
                 [ div [ class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone" ]
-                    (case ( url, filename ) of
-                        ( Just url, Just filename ) ->
-                            [ button [ onClick (DownloadFile url jwt filename) ] [ text "Hent rapport" ] ]
-
-                        ( _, _ ) ->
-                            [ button [ disabled True ] [ text "Hent rapport" ] ]
-                    )
+                    [ button [ onClick (DownloadFile url jwt filename) ] [ text "Hent rapport" ] ]
                 ]
             ]
 -- SUBSCRIPTIONS
