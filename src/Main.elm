@@ -331,12 +331,6 @@ projects model =
 visibility : Model -> Html Msg
 visibility model = 
     let
-        toListItem p =
-            option [ value p.id ] [ text (p.customer ++ " – " ++ p.name) ]
-
-        items =
-            (List.map toListItem model.projects)
-
         url =
             model.apiUrl
                 ++ "/reporting/visibility/"
