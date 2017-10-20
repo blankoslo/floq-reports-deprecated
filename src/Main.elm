@@ -290,7 +290,12 @@ projects model =
                         ++ "–"
                         ++ model.projectStatusRange.end
                         ++ "–"
-                        ++ "visibility"
+                        ++ p.id
+                        ++ "–"
+                        ++ String.filter (\c -> isUpper c || isLower c) p.customer
+                        ++ "–"
+                        ++ String.filter (\c -> isUpper c || isLower c) p.name
+                        ++ ".csv"
                 )
                 model.selectedProject
     in
@@ -321,6 +326,7 @@ projects model =
                     )
                 ]
             ]
+
 
 visibility : Model -> Html Msg
 visibility model = 
