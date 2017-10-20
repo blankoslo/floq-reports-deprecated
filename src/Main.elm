@@ -340,7 +340,7 @@ visibility model =
             Maybe.map
                 (\p ->
                     model.apiUrl
-                        ++ "/visibility/"
+                        ++ "reporting/visibility/"
                         ++ "?start_date="
                         ++ model.visibilityStatusRange.start
                         ++ "&end_date="
