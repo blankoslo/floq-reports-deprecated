@@ -18,6 +18,7 @@ install:
       make && make install;
       cd ..;
     fi
+  - $TRAVIS_BUILD_DIR/sysconfcpus/bin/sysconfcpus -n 2 yarn install
 
 script:
   - $TRAVIS_BUILD_DIR/sysconfcpus/bin/sysconfcpus -n 2 yarn run dist
