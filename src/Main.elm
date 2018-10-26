@@ -178,10 +178,10 @@ update action model =
                     )
                     |> List.sortBy .firstName
             in  
-                ( { model | employees = sortedEmployees }, Cmd.none )
+                ( { model | employees = sortedEmployees, selectedEmployee = List.head sortedEmployees }, Cmd.none )
         
-        SetEmployees (Err message) ->
-            ( { model | employees = [{ firstName = toString message, lastName = "ERROR", id = 2, terminationDate = Nothing  }] } , Cmd.none )
+        SetEmployees (Err _) ->
+            ( model , Cmd.none )
 
         SetProjectRangeStartDate start ->
             let
@@ -420,11 +420,11 @@ employeesForm model =
                 ]
             , div [ class "mdl-grid" ]
                 [ div [ class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone" ]
-                    (case ( url, filename, payload ) of
-                        ( url, Just filename, Just payload ) ->
+                    (case ( filename, payload ) of
+                        ( Just filename, Just payload ) ->
                             [ button [ onClick (DownloadEmployeeHoursFile filename payload) ] [ text "Hent rapport" ] ]
 
-                        ( _, _ , _) ->
+                        ( _ , _) ->
                             [ button [ disabled True ] [ text "Hent rapport" ] ]
                     )
                 ]
