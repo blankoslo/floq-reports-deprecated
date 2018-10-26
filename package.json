@@ -29,7 +29,10 @@
     "url-loader": "^0.5.7",
     "webpack": "^1.13.1",
     "webpack-dev-server": "^1.14.1",
-    "webpack-merge": "^0.14.1"
+    "webpack-merge": "^0.14.1",
+    "export-to-csv": "^0.1.2",
+    "json2xls": "^0.1.2",
+    "xlsx": "^0.14.0"
   },
   "dependencies": {
     "whatwg-fetch": "^1.0.0"
