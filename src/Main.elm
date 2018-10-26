@@ -4,8 +4,8 @@ import Html exposing (..)
 import Html.Attributes exposing (class, disabled, for, id, type_, value)
 import Html.Events exposing (onClick, on, targetValue, onInput)
 import Http
-import Json.Decode exposing (Decoder, list, string, int)
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode exposing (Decoder, list, string, int, maybe, nullable)
+import Json.Decode.Pipeline exposing (decode, required, optional)
 import Char exposing (isLower, isUpper)
 import Task
 import Date exposing (Date)
@@ -44,6 +44,7 @@ type alias Employee =
     { firstName : String
     , lastName : String
     , id : Int
+    , terminationDate: Maybe String
     }
 
 type alias Project =
@@ -68,6 +69,7 @@ type alias Model =
     , selectedEmployee: Maybe Employee
     , token : String
     , apiUrl : String
+    , now : Maybe Date
     }
 
 
@@ -78,7 +80,7 @@ init flags =
             StatusRange "1970-01-01" "1970-01-01"
 
         initialModel =
-            Model [] [] initialRange initialRange initialRange Nothing Nothing flags.token flags.apiUrl
+            Model [] [] initialRange initialRange initialRange Nothing Nothing flags.token flags.apiUrl Nothing
     in
         initialModel ! [ Task.perform SetDate Date.now, getProjects flags.token flags.apiUrl, getEmployees flags.token flags.apiUrl ]
 
@@ -103,6 +105,17 @@ type Msg
     | DownloadFile String String String
     | DownloadEmployeeHoursFile String String
 
+
+
+hasQuitted : Maybe String -> Maybe Date -> Bool
+hasQuitted terminationDate now = 
+    case (terminationDate, now) of
+        (Just terminationDate, Just now) ->
+             case (Date.fromString terminationDate) of 
+                (Ok date) -> Date.toTime date < Date.toTime now
+                (Err _) -> False
+        ( _, _ ) -> 
+            False 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
@@ -141,6 +154,7 @@ update action model =
                     | statusRange = StatusRange mondayOfPrevWeek sundayOfPrevWeek
                     , projectStatusRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
                     , employeeHoursRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
+                    , now = Just date
                   }
                 , Cmd.none
                 )
@@ -151,11 +165,23 @@ update action model =
         SetProjects (Err _) ->
             ( model, Cmd.none )
 
-        SetEmployees (Ok employees) -> 
-            ( { model | employees = employees }, Cmd.none )
+        SetEmployees (Ok employees) ->
+            let
+                sortedEmployees = employees
+                    |> List.map (\employee ->
+                        case (employee.terminationDate) of
+                            (Just date) -> 
+                                if hasQuitted employee.terminationDate model.now
+                                then { employee | firstName = "🚶‍♀️" ++ employee.firstName }
+                                else employee 
+                            (Nothing) -> employee 
+                    )
+                    |> List.sortBy .firstName
+            in  
+                ( { model | employees = sortedEmployees }, Cmd.none )
         
-        SetEmployees (Err _) ->
-            ( { model | employees = [{ firstName = toString Err, lastName = "ERROR", id = 2  }] } , Cmd.none )
+        SetEmployees (Err message) ->
+            ( { model | employees = [{ firstName = toString message, lastName = "ERROR", id = 2, terminationDate = Nothing  }] } , Cmd.none )
 
         SetProjectRangeStartDate start ->
             let
@@ -200,20 +226,20 @@ update action model =
         SetEmployeeHoursStartDate start ->
             let
                 oldRange =
-                    model.statusRange
+                    model.employeeHoursRange
 
                 newRange =
                     { oldRange | start = start }
             in
                 ( { model | employeeHoursRange = newRange }, Cmd.none )
 
-        SetEmployeeHoursEndDate start ->
+        SetEmployeeHoursEndDate end ->
             let
                 oldRange =
-                    model.statusRange
+                    model.employeeHoursRange
 
                 newRange =
-                    { oldRange | start = start }
+                    { oldRange | end = end }
             in
                 ( { model | employeeHoursRange = newRange }, Cmd.none )
 
@@ -456,6 +482,7 @@ decodeEmployee =
         |> required "first_name" string
         |> required "last_name" string
         |> required "id" int
+        |> required "termination_date" (nullable string)
         |> list
 
 decodeProject : Decoder (List Project)
