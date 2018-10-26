@@ -1,6 +1,7 @@
 require( './styles/main.less' );
 require('whatwg-fetch');
 const csvExporter = require('export-to-csv')
+const XLSX = require('xlsx')
 
 var Elm = require( './Main' );
 var app = Elm.Main.embed(document.getElementById('app'), {
@@ -30,22 +31,24 @@ app.ports.fetchFile.subscribe(function(args) {
 
       return response.arrayBuffer();
     })
-    .then(function(data) {
-      // create a blob url representing the data
-      var blob = new Blob([data]);
-      var url = window.URL.createObjectURL(blob);
-
-      // attach blob url to anchor element with download attribute
-      var anchor = document.createElement('a');
-      anchor.setAttribute('href', url);
-      anchor.setAttribute('download', filename);
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      window.URL.revokeObjectURL(url);
-    })
+    .then( data => downloadDataAsFile(data, filename) )
     .catch( err => console.log(err) )
 });
+
+const downloadDataAsFile = ( data, filename ) => {
+  // create a blob url representing the data
+  var blob = new Blob([data]);
+  var url = window.URL.createObjectURL(blob);
+
+  // attach blob url to anchor element with download attribute
+  var anchor = document.createElement('a');
+  anchor.setAttribute('href', url);
+  anchor.setAttribute('download', filename);
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(url);
+}
 
 const createPayloadFromString = ( payload ) => {
   return payload = payload
@@ -96,20 +99,20 @@ const groupDataOnDates = ( timeEntries ) => {
     .map( project => createProjectColumn(project, hoursGroupedOnProjects[project], dates) )
 }
 
-const convertToCsv = ( jsonData, filename ) => {
+const convertToCsv = ( jsonData, fileName ) => {
   const options = {
-    filename,
-    fieldSeparator: ',',
+    filename: fileName,
+    fieldSeparator: '\t',
     quoteStrings: '"',
-    decimalseparator: '.',
+    decimalseparator: ',',
     showLabels: true,
-    showTitle: true,
-    title: filename,
     useBom: true,
     useKeysAsHeaders: true,
   };
   const csvConverter = new csvExporter.ExportToCsv( options )
-  return csvConverter.generateCsv( jsonData )
+  const csvData = csvConverter.generateCsv( jsonData, true )
+  const workBook = XLSX.read( csvData, { type: 'binary' } )
+  const file = XLSX.writeFile( workBook, fileName + '.txt' , { type: 'string', workBook: 'txt' } )
 }
 
 app.ports.fetchEmployeeHoursFile.subscribe( function(args) {

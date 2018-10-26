@@ -373,7 +373,6 @@ employeesForm model =
                         ++ employee.firstName
                         ++ "-"
                         ++ employee.lastName
-                        ++ ".csv"
                 )
                 model.selectedEmployee
     in
