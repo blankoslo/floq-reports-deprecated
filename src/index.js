@@ -90,6 +90,13 @@ const groupDataOnDates = ( timeEntries ) => {
       row[dates.indexOf( work_date )] = hours
       hoursGroupedOnProjects[project] = row
     })
+  Object.keys(hoursGroupedOnProjects)
+    .forEach( dateKey => {
+      if (hoursGroupedOnProjects[dateKey].every( num => !num )) {
+        delete hoursGroupedOnProjects[dateKey]
+      }
+    })
+    
   timeEntries.forEach( ({ hours, work_date }) => {
     const row = hoursGroupedOnProjects.total || emptyArrayOfLength( dates )
     row[dates.indexOf( work_date )] +=  hours
@@ -112,7 +119,7 @@ const convertToCsv = ( jsonData, fileName ) => {
   const csvConverter = new csvExporter.ExportToCsv( options )
   const csvData = csvConverter.generateCsv( jsonData, true )
   const workBook = XLSX.read( csvData, { type: 'binary' } )
-  const file = XLSX.writeFile( workBook, fileName + '.txt' , { type: 'string', workBook: 'txt' } )
+  const file = XLSX.writeFile( workBook, fileName + '.csv' , { type: 'string', workBook: 'txt' } )
 }
 
 app.ports.fetchEmployeeHoursFile.subscribe( function(args) {
