@@ -4,8 +4,8 @@ import Html exposing (..)
 import Html.Attributes exposing (class, disabled, for, id, type_, value)
 import Html.Events exposing (onClick, on, targetValue, onInput)
 import Http
-import Json.Decode exposing (Decoder, list, string)
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode exposing (Decoder, list, string, int, maybe, nullable)
+import Json.Decode.Pipeline exposing (decode, required, optional)
 import Char exposing (isLower, isUpper)
 import Task
 import Date exposing (Date)
@@ -15,6 +15,7 @@ import Date.Extra.Duration exposing (add, Duration(Week, Day))
 
 
 port fetchFile : ( String, String, String ) -> Cmd msg
+port fetchEmployeeHoursFile : (String, String) -> Cmd msg 
 
 
 type alias Flags =
@@ -39,12 +40,18 @@ type alias DateString =
 -- MODEL
 
 
+type alias Employee = 
+    { firstName : String
+    , lastName : String
+    , id : Int
+    , terminationDate: Maybe String
+    }
+
 type alias Project =
     { id : String
     , name : String
     , customer : String
     }
-
 
 type alias StatusRange =
     { start : DateString
@@ -54,11 +61,15 @@ type alias StatusRange =
 
 type alias Model =
     { projects : List Project
+    , employees: List Employee
     , statusRange : StatusRange
     , projectStatusRange : StatusRange
+    , employeeHoursRange : StatusRange
     , selectedProject : Maybe Project
+    , selectedEmployee: Maybe Employee
     , token : String
     , apiUrl : String
+    , now : Maybe Date
     }
 
 
@@ -69,9 +80,9 @@ init flags =
             StatusRange "1970-01-01" "1970-01-01"
 
         initialModel =
-            Model [] initialRange initialRange Nothing flags.token flags.apiUrl
+            Model [] [] initialRange initialRange initialRange Nothing Nothing flags.token flags.apiUrl Nothing
     in
-        initialModel ! [ Task.perform SetDate Date.now, getProjects flags.token flags.apiUrl ]
+        initialModel ! [ Task.perform SetDate Date.now, getProjects flags.token flags.apiUrl, getEmployees flags.token flags.apiUrl ]
 
 
 
@@ -79,16 +90,32 @@ init flags =
 
 
 type Msg
-    = LoadedProjects (Result Http.Error (List Project))
+    = SetProjects (Result Http.Error (List Project))
+    | SetEmployees (Result Http.Error (List Employee))
     | SetDate Date
-    | RangeStartDate String
-    | RangeEndDate String
-    | ProjectRangeStartDate String
-    | ProjectRangeEndDate String
+    | SetRangeStartDate String
+    | SetRangeEndDate String
+    | SetProjectRangeStartDate String
+    | SetProjectRangeEndDate String
+    | SetEmployeeHoursStartDate String
+    | SetEmployeeHoursEndDate String
     | SelectProject String
+    | SelectEmployee String
     | DateMissing
     | DownloadFile String String String
+    | DownloadEmployeeHoursFile String String
 
+
+
+hasQuitted : Maybe String -> Maybe Date -> Bool
+hasQuitted terminationDate now = 
+    case (terminationDate, now) of
+        (Just terminationDate, Just now) ->
+             case (Date.fromString terminationDate) of 
+                (Ok date) -> Date.toTime date < Date.toTime now
+                (Err _) -> False
+        ( _, _ ) -> 
+            False 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
@@ -126,17 +153,37 @@ update action model =
                 ( { model
                     | statusRange = StatusRange mondayOfPrevWeek sundayOfPrevWeek
                     , projectStatusRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
+                    , employeeHoursRange = StatusRange firstDayOfPrevMonth lastDayOfPrevMonth
+                    , now = Just date
                   }
                 , Cmd.none
                 )
 
-        LoadedProjects (Ok projects) ->
+        SetProjects (Ok projects) ->
             ( { model | projects = projects, selectedProject = List.head projects }, Cmd.none )
 
-        LoadedProjects (Err _) ->
+        SetProjects (Err _) ->
             ( model, Cmd.none )
 
-        ProjectRangeStartDate start ->
+        SetEmployees (Ok employees) ->
+            let
+                sortedEmployees = employees
+                    |> List.map (\employee ->
+                        case (employee.terminationDate) of
+                            (Just date) -> 
+                                if hasQuitted employee.terminationDate model.now
+                                then { employee | firstName = "🚶‍♀️" ++ employee.firstName }
+                                else employee 
+                            (Nothing) -> employee 
+                    )
+                    |> List.sortBy .firstName
+            in  
+                ( { model | employees = sortedEmployees, selectedEmployee = List.head sortedEmployees }, Cmd.none )
+        
+        SetEmployees (Err _) ->
+            ( model , Cmd.none )
+
+        SetProjectRangeStartDate start ->
             let
                 oldRange =
                     model.projectStatusRange
@@ -146,7 +193,7 @@ update action model =
             in
                 ( { model | projectStatusRange = newRange }, Cmd.none )
 
-        ProjectRangeEndDate end ->
+        SetProjectRangeEndDate end ->
             let
                 oldRange =
                     model.projectStatusRange
@@ -156,7 +203,7 @@ update action model =
             in
                 ( { model | projectStatusRange = newRange }, Cmd.none )
 
-        RangeStartDate start ->
+        SetRangeStartDate start ->
             let
                 oldRange =
                     model.statusRange
@@ -166,7 +213,7 @@ update action model =
             in
                 ( { model | statusRange = newRange }, Cmd.none )
 
-        RangeEndDate end ->
+        SetRangeEndDate end ->
             let
                 oldRange =
                     model.statusRange
@@ -175,16 +222,41 @@ update action model =
                     { oldRange | end = end }
             in
                 ( { model | statusRange = newRange }, Cmd.none )
+
+        SetEmployeeHoursStartDate start ->
+            let
+                oldRange =
+                    model.employeeHoursRange
+
+                newRange =
+                    { oldRange | start = start }
+            in
+                ( { model | employeeHoursRange = newRange }, Cmd.none )
+
+        SetEmployeeHoursEndDate end ->
+            let
+                oldRange =
+                    model.employeeHoursRange
+
+                newRange =
+                    { oldRange | end = end }
+            in
+                ( { model | employeeHoursRange = newRange }, Cmd.none )
 
         SelectProject projectId ->
             ( { model | selectedProject = List.filter (\x -> x.id == projectId) model.projects |> List.head }, Cmd.none )
+
+        SelectEmployee employeeId -> 
+            ( { model | selectedEmployee = List.filter (\e -> toString e.id == employeeId) model.employees |> List.head }, Cmd.none )
+
 
         DateMissing ->
             ( model, Cmd.none )
 
         DownloadFile url jwt filename ->
             ( model, fetchFile ( url, jwt, filename ) )
-
+        DownloadEmployeeHoursFile filename payload ->
+            ( model, fetchEmployeeHoursFile ( filename, payload ) )
 
 
 -- VIEW
@@ -192,11 +264,11 @@ update action model =
 
 view : Model -> Html Msg
 view model =
-    div [] [ status model, projects model ]
+    div [] [ statusForm model, projectsForm model, employeesForm model ]
 
 
-status : Model -> Html Msg
-status model =
+statusForm : Model -> Html Msg
+statusForm model =
     let
         url =
             model.apiUrl
@@ -217,11 +289,11 @@ status model =
             , div [ class "mdl-grid" ]
                 [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "start" ] [ text "Startdato" ]
-                    , input [ id "start", type_ "date", class "form-control", onInput RangeStartDate, value model.statusRange.start ] []
+                    , input [ id "start", type_ "date", class "form-control", onInput SetRangeStartDate, value model.statusRange.start ] []
                     ]
                 , div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "end" ] [ text "Sluttdato (inklusiv)" ]
-                    , input [ id "end", type_ "date", class "form-control", onInput RangeEndDate, value model.statusRange.end ] []
+                    , input [ id "end", type_ "date", class "form-control", onInput SetRangeEndDate, value model.statusRange.end ] []
                     ]
                 ]
             , div [ class "mdl-grid" ]
@@ -231,14 +303,14 @@ status model =
             ]
 
 
-projects : Model -> Html Msg
-projects model =
+projectsForm : Model -> Html Msg
+projectsForm model =
     let
-        toListItem p =
+        createOptionNode p =
             option [ value p.id ] [ text (p.customer ++ " – " ++ p.name) ]
 
         items =
-            (List.map toListItem model.projects)
+            List.map createOptionNode model.projects
 
         url =
             Maybe.map
@@ -277,11 +349,11 @@ projects model =
             , div [ class "mdl-grid" ]
                 [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "start" ] [ text "Startdato" ]
-                    , input [ id "start", type_ "date", class "form-control", onInput ProjectRangeStartDate, value model.projectStatusRange.start ] []
+                    , input [ id "start", type_ "date", class "form-control", onInput SetProjectRangeStartDate, value model.projectStatusRange.start ] []
                     ]
                 , div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
                     [ label [ for "end" ] [ text "Sluttdato (inklusiv)" ]
-                    , input [ id "end", type_ "date", class "form-control", onInput ProjectRangeEndDate, value model.projectStatusRange.end ] []
+                    , input [ id "end", type_ "date", class "form-control", onInput SetProjectRangeEndDate, value model.projectStatusRange.end ] []
                     ]
                 ]
             , div [ class "mdl-grid" ]
@@ -300,7 +372,63 @@ projects model =
                 ]
             ]
 
+employeesForm : Model -> Html Msg
+employeesForm model = 
+    let 
+        createOptionNode p = option [ value ( toString p.id ) ] [ text (p.firstName ++ " " ++ p.lastName) ]
+        employeeOptions = List.map createOptionNode model.employees
+        url = model.apiUrl ++ "/rpc/entries_sums_for_employee_with_project"
+        payload =
+            Maybe.map
+                (\employee ->
+                    toString employee.id
+                        ++ ","
+                        ++ model.employeeHoursRange.start
+                        ++ ","
+                        ++ model.employeeHoursRange.end
+                )
+                model.selectedEmployee
+        jwt = Http.encodeUri model.token
+        filename =
+            Maybe.map
+                (\employee ->
+                    model.employeeHoursRange.start
+                        ++ "–"
+                        ++ model.employeeHoursRange.end
+                        ++ "–"
+                        ++ employee.firstName
+                        ++ "-"
+                        ++ employee.lastName
+                )
+                model.selectedEmployee
+    in
+        div []
+            [ h3 [] [ text "Timer ført av ansatt" ]
+            , div [ class "mdl-grid" ]
+                [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
+                    [ label [ for "start" ] [ text "Startdato" ]
+                    , input [ id "start", type_ "date", class "form-control", onInput SetEmployeeHoursStartDate, value model.employeeHoursRange.start ] []
+                    ]
+                , div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
+                    [ label [ for "end" ] [ text "Sluttdato (inklusiv)" ]
+                    , input [ id "end", type_ "date", class "form-control", onInput SetEmployeeHoursEndDate, value model.employeeHoursRange.end ] []
+                    ]
+                ]
+            , div [ class "mdl-grid" ]
+                [ div [ class "mdl-cell mdl-cell--3-col mdl-cell--6-col-phone" ]
+                    [ select [ onInput SelectEmployee ] employeeOptions ]
+                ]
+            , div [ class "mdl-grid" ]
+                [ div [ class "mdl-cell mdl-cell--2-col mdl-cell--6-col-phone" ]
+                    (case ( filename, payload ) of
+                        ( Just filename, Just payload ) ->
+                            [ button [ onClick (DownloadEmployeeHoursFile filename payload) ] [ text "Hent rapport" ] ]
 
+                        ( _ , _) ->
+                            [ button [ disabled True ] [ text "Hent rapport" ] ]
+                    )
+                ]
+            ]
 
 -- SUBSCRIPTIONS
 
@@ -313,6 +441,22 @@ subscriptions model =
 
 -- HTTP
 
+getEmployees : String -> String -> Cmd Msg
+getEmployees token apiUrl =
+    let
+        url =
+            apiUrl ++ "/employees"
+
+        request =
+            { method = "GET"
+            , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+            , url = url
+            , body = Http.emptyBody
+            , expect = Http.expectJson decodeEmployee
+            , timeout = Nothing
+            , withCredentials = False
+            }
+    in Http.send SetEmployees <| Http.request request
 
 getProjects : String -> String -> Cmd Msg
 getProjects token apiUrl =
@@ -324,14 +468,22 @@ getProjects token apiUrl =
             { method = "GET"
             , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
             , url = url
-            , body = Http.emptyBody
+            , body = Http.emptyBody 
             , expect = Http.expectJson decodeProject
             , timeout = Nothing
             , withCredentials = False
             }
     in
-        Http.send LoadedProjects <| Http.request request
+        Http.send SetProjects <| Http.request request
 
+decodeEmployee : Decoder (List Employee)
+decodeEmployee =
+    decode Employee
+        |> required "first_name" string
+        |> required "last_name" string
+        |> required "id" int
+        |> required "termination_date" (nullable string)
+        |> list
 
 decodeProject : Decoder (List Project)
 decodeProject =
