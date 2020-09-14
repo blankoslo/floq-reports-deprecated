@@ -6,7 +6,7 @@ cache:
     - elm-stuff/build-artifacts
     - sysconfcpus
 node_js:
-  - "6"
+  - "12"
 
 install:
   - |
