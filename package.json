@@ -32,7 +32,7 @@
     "webpack-merge": "^0.14.1",
     "export-to-csv": "^0.1.2",
     "json2xls": "^0.1.2",
-    "xlsx": "^0.14.0"
+    "xlsx": "^0.17.0"
   },
   "dependencies": {
     "whatwg-fetch": "^1.0.0"
