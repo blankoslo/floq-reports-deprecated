@@ -19,7 +19,7 @@ port fetchEmployeeHoursFile : (String, String) -> Cmd msg
 
 
 type alias Flags =
-    { token : String, apiUrl : String }
+    { token : String, apiUrl : String, reportsApiUrl: String }
 
 
 main : Program Flags Model Msg
@@ -69,6 +69,7 @@ type alias Model =
     , selectedEmployee: Maybe Employee
     , token : String
     , apiUrl : String
+    , reportsApiUrl : String
     , now : Maybe Date
     }
 
@@ -80,7 +81,7 @@ init flags =
             StatusRange "1970-01-01" "1970-01-01"
 
         initialModel =
-            Model [] [] initialRange initialRange initialRange Nothing Nothing flags.token flags.apiUrl Nothing
+            Model [] [] initialRange initialRange initialRange Nothing Nothing flags.token flags.apiUrl flags.reportsApiUrl Nothing
     in
         initialModel ! [ Task.perform SetDate Date.now, getProjects flags.token flags.apiUrl, getEmployees flags.token flags.apiUrl ]
 
@@ -271,8 +272,8 @@ statusForm : Model -> Html Msg
 statusForm model =
     let
         url =
-            model.apiUrl
-                ++ "/reporting/time_tracking_status"
+            model.reportsApiUrl
+                ++ "/time_tracking_status"
                 ++ "?start_date="
                 ++ model.statusRange.start
                 ++ "&end_date="
@@ -315,8 +316,8 @@ projectsForm model =
         url =
             Maybe.map
                 (\p ->
-                    model.apiUrl
-                        ++ "/reporting/hours/"
+                    model.reportsApiUrl
+                        ++ "/hours/"
                         ++ p.id
                         ++ "?start_date="
                         ++ model.projectStatusRange.start
@@ -461,8 +462,7 @@ getEmployees token apiUrl =
 getProjects : String -> String -> Cmd Msg
 getProjects token apiUrl =
     let
-        url =
-            apiUrl ++ "/reporting/projects"
+        url = reportsApiUrl ++ "/projects"
 
         request =
             { method = "GET"
